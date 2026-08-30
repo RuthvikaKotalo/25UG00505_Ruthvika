@@ -1,0 +1,391 @@
+DESIGN EXPLANATION
+JAVA BYTECODE SIMULATOR
+
+1. INTRODUCTION
+
+The objective of this project is to implement a simulator for a small and simple subset of Java bytecode in C.
+
+The simulator takes a Java-bytecode-like program in ordinary text format, with one instruction per line. It first reads and stores the instructions and then executes them using a small virtual-machine-like design.
+
+The simulator supports:
+ldc, iload, istore, iadd, isub, imul, idiv, ifeq, iflt, ifgt
+
+It also supports two special instructions:
+read, print
+
+The read instruction reads an integer from the keyboard and pushes it onto the operand stack. The print instruction prints the integer at the top of the operand stack.
+
+2. MAIN DESIGN
+
+The simulator is designed around five main components:
+
+1. Instruction memory
+2. Program Counter (PC)
+3. Operand Stack
+4. Local Variable Array
+5. Label Table
+
+These components work together to execute the bytecode program instruction by instruction.
+
+3. INSTRUCTION MEMORY
+
+The input program is given as ordinary text, with one instruction per line.
+
+Example:
+
+ldc 10
+ldc 20
+iadd
+print
+
+The simulator first reads these instructions and stores them in an instruction array. Each instruction has a position or index. This index is used by the Program Counter.
+
+4. PROGRAM COUNTER
+
+The Program Counter, or PC, stores the index of the instruction currently being executed.
+
+Initially:
+
+PC = 0
+
+The simulator fetches the instruction at the current PC, executes it, and normally moves to the next instruction.
+
+For example:
+
+PC = 0 -> ldc 10
+PC = 1 -> ldc 20
+PC = 2 -> iadd
+PC = 3 -> print
+
+Conditional branch instructions can change the PC so that execution continues from another instruction.
+
+5. OPERAND STACK
+
+The operand stack stores temporary values during execution.
+
+Example:
+
+ldc 10
+ldc 20
+
+After ldc 10:
+
+Stack = [10]
+
+After ldc 20:
+
+Stack = [10, 20]
+
+When iadd is executed, the simulator removes the two top values, adds them, and pushes the result.
+
+10 + 20 = 30
+
+The stack becomes:
+
+Stack = [30]
+
+The stack is therefore the main area used for intermediate calculations.
+
+6. LOCAL VARIABLES
+
+The simulator maintains local variables. The project specifies a maximum of 10 local variables, although a larger size may be used if necessary.
+
+The istore instruction moves a value from the top of the operand stack into a local variable.
+
+Example:
+
+read
+istore 0
+
+If the input is 25:
+
+local[0] = 25
+
+The iload instruction performs the reverse operation.
+
+Example:
+
+iload 0
+
+If local[0] contains 25:
+
+Stack = [25]
+
+Therefore:
+
+istore: Stack -> Local Variable
+iload: Local Variable -> Stack
+
+7. LABEL TABLE
+
+Labels are used for conditional jumps.
+
+Example:
+
+LOOP:
+iload 0
+...
+ifgt LOOP
+
+During program loading, the simulator identifies labels and stores their instruction positions in a label table.
+
+Example:
+
+LOOP -> instruction number 5
+
+When ifgt LOOP is executed and its condition is true, the simulator changes the PC to the instruction represented by LOOP.
+
+Labels therefore allow the bytecode program to implement decisions and loops.
+
+8. INSTRUCTION EXECUTION
+
+The simulator repeatedly performs these steps:
+
+1. Fetch the instruction at the current PC.
+2. Decode the instruction.
+3. Execute the instruction.
+4. Update the PC.
+5. Continue until the program reaches the end.
+
+Execution flow:
+
+Start
+  |
+  v
+Read and store program
+  |
+  v
+Process labels
+  |
+  v
+Initialize PC, stack and local variables
+  |
+  v
+Fetch instruction
+  |
+  v
+Decode and execute instruction
+  |
+  v
+Update PC
+  |
+  v
+More instructions?
+  |          |
+ Yes         No
+  |           |
+  +----->   Stop
+  |
+ Repeat
+
+9. INSTRUCTION BEHAVIOUR
+
+ldc:
+Loads an integer constant onto the operand stack.
+
+iload:
+Loads a value from a local variable onto the operand stack.
+
+istore:
+Removes the top value from the operand stack and stores it in a local variable.
+
+iadd:
+Pops two values, adds them, and pushes the result.
+
+isub:
+Pops two values, subtracts the top value from the second value, and pushes the result.
+
+imul:
+Pops two values, multiplies them, and pushes the result.
+
+idiv:
+Pops two values, divides the second value by the top value, and pushes the result. Division by zero must be handled as an error.
+
+ifeq:
+Checks whether the top stack value is equal to zero. If true, execution jumps to the specified label.
+
+iflt:
+Checks whether the top stack value is less than zero. If true, execution jumps to the specified label.
+
+ifgt:
+Checks whether the top stack value is greater than zero. If true, execution jumps to the specified label.
+
+read:
+Reads an integer from the keyboard and pushes it onto the operand stack.
+
+print:
+Prints the integer at the top of the operand stack.
+
+10. ARITHMETIC EXAMPLE
+
+Consider:
+
+ldc 10
+ldc 20
+iadd
+print
+
+Initially the stack is empty.
+
+After ldc 10:
+[10]
+
+After ldc 20:
+[10, 20]
+
+The iadd instruction removes 20 and 10, calculates 10 + 20 = 30, and pushes 30.
+
+The stack becomes:
+
+[30]
+
+The print instruction then prints:
+
+30
+
+11. CONDITIONAL EXECUTION
+
+The instructions ifeq, iflt and ifgt provide conditional control flow.
+
+Example:
+
+ldc -5
+iflt NEGATIVE
+
+The value -5 is pushed onto the stack. The iflt instruction checks whether it is less than zero.
+
+Since -5 < 0, execution jumps to the instruction represented by the NEGATIVE label.
+
+This mechanism allows bytecode programs to implement decisions and loops.
+
+12. TEST PROGRAM A - MINIMUM AND MAXIMUM
+
+The first required test program reads three integers, stores them, finds their minimum and maximum, and prints the results.
+
+Example input:
+
+25
+7
+18
+
+The values can be stored as:
+
+local[0] = 25
+local[1] = 7
+local[2] = 18
+
+The bytecode program compares the values and determines:
+
+Minimum = 7
+Maximum = 25
+
+This test demonstrates input, local-variable storage, loading values, arithmetic operations, comparisons and conditional jumps.
+
+13. TEST PROGRAM B - BUBBLE SORT
+
+The second required test program reads an integer n, then reads n integers, sorts them in ascending order, and prints them.
+
+Example input:
+
+5
+25
+7
+18
+3
+12
+
+Initially:
+
+25 7 18 3 12
+
+Bubble Sort repeatedly compares adjacent values and swaps them when the left value is greater than the right value.
+
+Final output:
+
+3 7 12 18 25
+
+This test demonstrates loops, comparisons, local variables, stack operations and conditional jumps.
+
+14. TEST PROGRAM C - 2x2 MATRIX ADDITION
+
+The third required test program reads two 2x2 matrices and computes their sum.
+
+Matrix A:
+
+1 2
+3 4
+
+Matrix B:
+
+5 6
+7 8
+
+The corresponding elements are added:
+
+1 + 5 = 6
+2 + 6 = 8
+3 + 7 = 10
+4 + 8 = 12
+
+Result:
+
+6 8
+10 12
+
+This test demonstrates input, storage, loading values, arithmetic operations and output.
+
+15. ERROR HANDLING
+
+The simulator should detect invalid situations such as:
+
+- Invalid or unknown instruction
+- Stack underflow
+- Stack overflow
+- Invalid local variable index
+- Undefined label
+- Duplicate label
+- Missing instruction operand
+- Division by zero
+
+Handling these errors prevents the simulator from continuing with an invalid state.
+
+16. OVERALL DESIGN SUMMARY
+
+The project can be understood as a small virtual machine.
+
+The instruction array stores the bytecode program.
+
+The Program Counter tells the simulator which instruction to execute.
+
+The operand stack stores temporary values and is used by arithmetic instructions.
+
+The local variable array stores values that need to be retained.
+
+The label table stores the locations of labels so that conditional instructions can change the flow of execution.
+
+The simulator repeatedly fetches, decodes and executes instructions until the program finishes.
+
+The three test programs - minimum and maximum, Bubble Sort, and 2x2 matrix addition - demonstrate that the simulator can execute non-trivial programs using the supported bytecode instructions.
+
+17. CONCLUSION
+
+The design provides a simple model of how a bytecode execution system works. Instead of directly implementing the algorithms using normal high-level language statements, the algorithms are represented using the supported bytecode instructions and executed by the simulator.
+
+The main idea is:
+
+BYTECODE PROGRAM
+       |
+       v
+PROGRAM COUNTER
+       |
+       v
+FETCH INSTRUCTION
+       |
+       v
+EXECUTE USING STACK AND LOCAL VARIABLES
+       |
+       v
+UPDATE PROGRAM COUNTER
+       |
+       v
+REPEAT UNTIL PROGRAM ENDS
